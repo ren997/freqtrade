@@ -89,12 +89,15 @@ class Ma169PullbackStrategy(IStrategy):
     startup_candle_count: int = 175
 
     MA_PERIOD = 169
-    MA_ZONE_UPPER_PCT = 0.01
+    MA_ZONE_UPPER_PCT = 0.001
     CLEAR_CANDLES_REQUIRED = 5
     FALLBACK_STOPLOSS = -0.10
 
     order_types = {
-        "entry": "limit",
+        # A signal is known only once the confirmation candle has closed.  Submit a
+        # market order on that evaluation cycle so the position (and entry_fill
+        # webhook) is not delayed while waiting for a limit order to be revisited.
+        "entry": "market",
         "exit": "market",
         "stoploss": "market",
         "stoploss_on_exchange": False,
@@ -131,11 +134,11 @@ class Ma169PullbackStrategy(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: a Dataframe with all mandatory indicators for the strategies
         """
-        # MA169 and the upper boundary of its 1% pullback zone.
+        # MA169 and the upper boundary of its 0.1% pullback zone.
         dataframe["ma169"] = ta.SMA(dataframe, timeperiod=self.MA_PERIOD)
         dataframe["ma169_zone_upper"] = dataframe["ma169"] * (1 + self.MA_ZONE_UPPER_PCT)
 
-        # A candle touches the zone when its high-low range overlaps [MA169, MA169 * 1.01].
+        # A candle touches the zone when its high-low range overlaps [MA169, MA169 * 1.001].
         dataframe["ma169_zone_touched"] = (
             (dataframe["low"] <= dataframe["ma169_zone_upper"])
             & (dataframe["high"] >= dataframe["ma169"])
@@ -162,7 +165,7 @@ class Ma169PullbackStrategy(IStrategy):
         :return: DataFrame with entry columns populated
         """
         # Each of the five candles before the signal candle must be completely above the
-        # MA169-to-MA169*1.01 zone.  Therefore every one is above MA169 and none can touch
+        # MA169-to-MA169*1.001 zone.  Therefore every one is above MA169 and none can touch
         # the zone.  shift(2) aligns this lookback with the confirmation candle.
         prior_candles_above_zone = (
             (dataframe["low"] > dataframe["ma169_zone_upper"])
@@ -173,7 +176,6 @@ class Ma169PullbackStrategy(IStrategy):
         )
 
         signal_candle_close = dataframe["close"].shift(1)
-        signal_candle_body_midpoint = (dataframe["open"].shift(1) + signal_candle_close) / 2
         dataframe["signal_candle_low"] = dataframe["low"].shift(1)
 
         dataframe.loc[
@@ -182,10 +184,8 @@ class Ma169PullbackStrategy(IStrategy):
                 # Previous candle: touches the zone and closes at or above MA169.
                 & dataframe["ma169_zone_touched"].shift(1)
                 & (signal_candle_close >= dataframe["ma169"].shift(1))
-                # Current candle: its close does not make a lower close and is in the
-                # upper half of the previous (signal) candle's body.
-                & (dataframe["close"] >= signal_candle_close)
-                & (dataframe["close"] >= signal_candle_body_midpoint)
+                # Current candle: confirmation requires a bullish close.
+                & (dataframe["close"] > dataframe["open"])
                 & (dataframe["volume"] > 0)
             ),
             ["enter_long", "enter_tag"],
