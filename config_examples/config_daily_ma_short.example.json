@@ -1,0 +1,86 @@
+{
+    "$schema": "https://schema.freqtrade.io/schema.json",
+    "max_open_trades": 1,
+    "stake_currency": "USDT",
+    "stake_amount": 20,
+    "tradable_balance_ratio": 0.99,
+    "fiat_display_currency": "USD",
+    "timeframe": "1d",
+    "strategy": "DailyMa169Ma200ShortStrategy",
+    "strategy_path": "user_data/strategies/",
+    "dry_run": true,
+    "dry_run_wallet": 1000,
+    "db_url": "sqlite:///tradesv3.daily-ma-short.dryrun.sqlite",
+    "trading_mode": "futures",
+    "margin_mode": "isolated",
+    "unfilledtimeout": {
+        "entry": 10,
+        "exit": 10,
+        "exit_timeout_count": 0,
+        "unit": "minutes"
+    },
+    "entry_pricing": {
+        "price_side": "other",
+        "use_order_book": true,
+        "order_book_top": 1
+    },
+    "exit_pricing": {
+        "price_side": "other",
+        "use_order_book": true,
+        "order_book_top": 1
+    },
+    "exchange": {
+        "name": "binance",
+        "key": "",
+        "secret": "",
+        "ccxt_config": {
+            "options": {
+                "defaultType": "swap"
+            }
+        },
+        "ccxt_async_config": {
+            "options": {
+                "defaultType": "swap"
+            }
+        },
+        "enable_ws": false,
+        "pair_whitelist": [
+            "BTC/USDT:USDT",
+            "ETH/USDT:USDT",
+            "HYPE/USDT:USDT",
+            "ZEC/USDT:USDT",
+            "SOL/USDT:USDT",
+            "BNB/USDT:USDT",
+            "XAU/USDT:USDT"
+        ],
+        "pair_blacklist": []
+    },
+    "pairlists": [
+        {
+            "method": "StaticPairList"
+        }
+    ],
+    "webhook": {
+        "enabled": false,
+        "url": "",
+        "format": "json",
+        "entry_fill": {
+            "msgtype": "text",
+            "text": {
+                "content": "日线做空模拟开仓成功\\n交易对：{pair}\\n方向：{direction}\\n价格：{open_rate}\\n金额：{stake_amount} {stake_currency}"
+            }
+        },
+        "exit_fill": {
+            "msgtype": "text",
+            "text": {
+                "content": "日线做空模拟平仓成功\\n交易对：{pair}\\n原因：{exit_reason}\\n价格：{close_rate}\\n收益：{profit_amount} {stake_currency}（{profit_ratio:.2%}）"
+            }
+        }
+    },
+    "bot_name": "freqtrade-daily-ma-short",
+    "initial_state": "running",
+    "force_entry_enable": false,
+    "internals": {
+        "process_throttle_secs": 5
+    }
+}
